@@ -29,11 +29,11 @@ import numpy as np
 import json
 
 # ─────────────────────────────────────────────
-# CONFIGURATION — Change these to fit your setup
+# CONFIGURATION
 # ─────────────────────────────────────────────
 DATA_DIR = "asl_alphabet_train"  # path to the training images folder
-IMG_SIZE = 200          # match the dataset's native 200x200 resolution
-BATCH_SIZE = 32         # lower this to 16 if you run out of memory
+IMG_SIZE = 96          # match the dataset's native 96x96 resolution
+BATCH_SIZE = 8          # lower batch size can help with overfitting, but will take longer to train
 EPOCHS = 20             # 15-20 is usually enough; early stopping will halt if it plateaus
 VALIDATION_SPLIT = 0.2  # 80% train, 20% validation
 MODEL_SAVE_PATH = "asl_model.keras"          # full model (architecture + weights)
@@ -87,7 +87,7 @@ NUM_CLASSES = len(class_names)
 # ─────────────────────────────────────────────
 # This is especially important for your project since the Kaggle dataset
 # has uniform backgrounds — augmentation simulates real-world variation.
-
+# Took this out it was causing too much overhead with RAM usage and the dataset wasn't learning with augmentation
 data_augmentation = tf.keras.Sequential([
     #layers.RandomFlip("horizontal"),
     layers.RandomRotation(0.15),          # up to ~27° rotation
@@ -199,7 +199,7 @@ my_callbacks = [
 # ─────────────────────────────────────────────
 # 6. TRAIN THE MODEL
 # ─────────────────────────────────────────────
-print("\n🚀 Starting training...\n")
+print("\n Starting training...\n")
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -217,7 +217,7 @@ print(f"\nTraining history saved to {HISTORY_SAVE_PATH}")
 # ─────────────────────────────────────────────
 # 7. EVALUATE ON VALIDATION SET
 # ─────────────────────────────────────────────
-print("\n📊 Evaluating model on validation set...\n")
+print("\n Evaluating model on validation set...\n")
 
 # Gather all true labels and predictions
 y_true = []
@@ -299,7 +299,7 @@ print(f"TFLite model saved to {TFLITE_SAVE_PATH} ({len(tflite_model) / 1e6:.1f} 
 # DONE!
 # ─────────────────────────────────────────────
 print(f"""
-✅ Training complete!
+Training complete!
 
 Files created:
   {MODEL_SAVE_PATH}       — Full Keras model (use this for loading in your project)

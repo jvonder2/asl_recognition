@@ -6,7 +6,7 @@ model = tf.keras.models.load_model("asl_model.keras")
 
 test_dataset = tf.keras.utils.image_dataset_from_directory(
     "C:\\Users\\jvond\\ML_Project\\asl_alphabet_test",
-    image_size=(200,200),   # replace with your actual size
+    image_size=(96,96),
     batch_size=32,
     shuffle=False
 )

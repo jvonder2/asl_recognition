@@ -43,7 +43,7 @@ for cls in classes:
     target_cls = os.path.join(TARGET_DIR, cls)
 
     if not os.path.exists(kaggle_cls):
-        print(f"  ⚠️ Skipping {cls} (not found in Kaggle)")
+        print(f"   Skipping {cls} (not found in Kaggle)")
         continue
 
     kaggle_files = list_images(kaggle_cls)
@@ -67,4 +67,4 @@ for cls in classes:
 
     print(f"  Added {count} images to {cls}")
 
-print("\n✅ Done merging Kaggle images into your dataset!")
+print("\n Done merging Kaggle images into your dataset!")

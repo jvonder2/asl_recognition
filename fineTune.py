@@ -2,7 +2,7 @@
 ASL Fine-Tuning Script
 ======================
 Fine-tunes an existing ASL CNN model on a merged dataset that contains:
-- your own hand images
+- my own hand images
 - sampled Kaggle images
 
 Expected folder structure:
@@ -238,7 +238,7 @@ print("Fine-tune confusion matrix saved to finetune_confusion_matrix.png")
 # DONE
 # =========================================================
 print(f"""
-✅ Fine-tuning complete!
+Fine-tuning complete!
 
 Files created:
   {FINETUNED_MODEL_PATH}         — Fine-tuned Keras model
