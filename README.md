@@ -127,7 +127,7 @@ pip install tensorflow opencv-python mediapipe numpy pillow matplotlib scikit-le
 ## How to Run
 
 ### A) Train the base model
-
+### If you want to run locally (althought there might be some errors you need to fix) use this script
 1. Download/unzip Kaggle ASL dataset.
 2. Point `DATA_DIR` in `CNN_test1.py` to your training folder.
 3. Run:
@@ -135,6 +135,12 @@ pip install tensorflow opencv-python mediapipe numpy pillow matplotlib scikit-le
 ```bash
 python CNN_test1.py
 ```
+### If you want to run through Google Colab this script should work
+1. Upload the dataset as a zip file to your Google Drive
+2. Upload the script CNNTest1Colab.ipynb to Google Colab and open it
+3. Mount your Google Drive to your Colab Notebook
+4. Change directories to match your file system
+5. Run the training on a GPU in Google
 
 ### B) Collect your own ASL images (optional, for fine-tuning)
 
@@ -205,10 +211,3 @@ Optional env vars for model paths:
 - If running on a non-Windows machine, path constants in scripts will likely need editing.
 
 ---
-
-## Possible Next Improvements
-
-- Add a `requirements.txt`.
-- Replace hardcoded paths with CLI args (`argparse`) or config files.
-- Add automated train/eval pipelines.
-- Add WER/CER or sentence-level metrics for live spelling quality.
