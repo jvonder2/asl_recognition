@@ -8,11 +8,6 @@ asl_alphabet_test/
 asl_alphabet_train/
 my_asl_dataset/
 
-# models
-*.keras
-*.h5
-*.tflite
-
 # python
 __pycache__/
 *.pyc

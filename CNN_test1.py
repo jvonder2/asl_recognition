@@ -298,8 +298,7 @@ print(f"TFLite model saved to {TFLITE_SAVE_PATH} ({len(tflite_model) / 1e6:.1f} 
 # ─────────────────────────────────────────────
 # DONE!
 # ─────────────────────────────────────────────
-print(f"""
-Training complete!
+print(f""" Training complete!
 
 Files created:
   {MODEL_SAVE_PATH}       — Full Keras model (use this for loading in your project)
