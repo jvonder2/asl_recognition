@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASL Data Collection</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --card: #12151c;
+            --border: #1e2330;
+            --green: #22c55e;
+            --green-dim: #166534;
+            --text: #e4e4e7;
+            --text-dim: #71717a;
+            --text-muted: #3f3f46;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(34,197,94,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34,197,94,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: grid-drift 20s linear infinite;
+        }
+        @keyframes grid-drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+            padding: 0 24px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(34,197,94,0.08);
+            border: 1px solid rgba(34,197,94,0.15);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--green);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+            animation: fade-down 0.6s ease both;
+        }
+        .badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 52px;
+            font-weight: 400;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            animation: fade-down 0.6s ease 0.1s both;
+        }
+        h1 em {
+            font-style: italic;
+            color: var(--green);
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            margin-bottom: 48px;
+            animation: fade-down 0.6s ease 0.2s both;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            animation: fade-down 0.6s ease 0.3s both;
+        }
+
+        .field {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .field input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .field input:focus {
+            border-color: var(--green);
+        }
+        .field input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 8px;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(34,197,94,0.25);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 13px;
+            color: var(--text-muted);
+            animation: fade-down 0.6s ease 0.4s both;
+        }
+
+        @keyframes fade-down {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="badge">Data Collection</div>
+
+        <h1>Help Us Build<br><em>ASL Recognition</em></h1>
+
+        <p class="subtitle">
+            Contribute hand sign images to improve our ASL model.
+            It takes about 15 minutes to complete all 26 letters.
+        </p>
+
+        <div class="card">
+            <form id="nameForm" action="/collect" method="GET">
+                <div class="field">
+                    <label for="first">First Name</label>
+                    <input type="text" id="first" name="first"
+                           placeholder="Enter your first name" required autocomplete="given-name">
+                </div>
+                <div class="field">
+                    <label for="last">Last Name</label>
+                    <input type="text" id="last" name="last"
+                           placeholder="Enter your last name" required autocomplete="family-name">
+                </div>
+                <div class="error-msg" id="error">Please enter both names.</div>
+                <button type="submit" class="btn" id="startBtn">Start Collecting →</button>
+            </form>
+        </div>
+
+        <p class="footer">
+            Your webcam will be used to capture hand sign images.<br>
+            Only cropped hand regions are saved — no face data is stored.
+        </p>
+    </div>
+
+    <script>
+        const form = document.getElementById('nameForm');
+        const error = document.getElementById('error');
+
+        form.addEventListener('submit', (e) => {
+            const first = document.getElementById('first').value.trim();
+            const last = document.getElementById('last').value.trim();
+            if (!first || !last) {
+                e.preventDefault();
+                error.style.display = 'block';
+                return;
+            }
+            error.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
