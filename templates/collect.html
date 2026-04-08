@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASL Collector — {{ first }} {{ last }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --card: #12151c;
+            --border: #1e2330;
+            --green: #22c55e;
+            --green-dim: #166534;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --text: #e4e4e7;
+            --text-dim: #71717a;
+            --text-muted: #3f3f46;
+            --panel: #0e1017;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+        }
+        .header-left {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .header-left .icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--green);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .header-title {
+            font-size: 15px; font-weight: 700; letter-spacing: 1px;
+        }
+        .header-user {
+            font-size: 13px; color: var(--text-dim);
+            font-family: 'DM Mono', monospace;
+        }
+        .live-badge {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 16px;
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.2);
+            font-size: 12px; font-weight: 600; color: var(--green);
+            letter-spacing: 1px;
+        }
+        .live-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+            animation: blink 1.4s infinite;
+        }
+        @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+        /* ── Main Layout ── */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            padding: 20px 24px;
+            height: calc(100vh - 61px);
+        }
+
+        /* ── Left Column ── */
+        .left-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+
+        .camera-section {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+        .camera-section .label-bar {
+            padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 11px; font-weight: 600; color: var(--text-dim);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+        }
+        .camera-wrap {
+            position: relative;
+            width: 100%; height: calc(100% - 38px);
+            background: #000;
+        }
+        .camera-wrap video,
+        .camera-wrap canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .camera-wrap video { transform: scaleX(-1); }
+        .camera-wrap canvas#overlay { z-index: 2; transform: scaleX(-1); }
+
+        .no-camera {
+            position: absolute; inset: 0; z-index: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 12px;
+            color: var(--text-muted); font-size: 14px;
+        }
+        .no-camera .emoji { font-size: 42px; opacity: 0.3; }
+
+        /* ── Controls Row ── */
+        .controls-row {
+            display: flex; gap: 12px; align-items: stretch;
+        }
+        .crop-preview {
+            width: 140px; height: 140px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .crop-preview canvas {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .crop-preview .crop-label {
+            position: absolute; top: 6px; left: 8px;
+            font-size: 9px; font-weight: 600; color: var(--text-dim);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .controls-panel {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-row { display: flex; gap: 8px; }
+
+        .btn {
+            padding: 12px 24px;
+            border: none; border-radius: 8px;
+            font-family: 'DM Mono', monospace;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn-start {
+            background: var(--green); color: #000; flex: 1;
+        }
+        .btn-start:hover { background: #16a34a; }
+        .btn-stop {
+            background: #7f1d1d; color: var(--red); flex: 1;
+        }
+        .btn-stop:hover { background: #991b1b; }
+        .btn-skip {
+            background: var(--panel); color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+        .btn-skip:hover { border-color: var(--text-dim); color: var(--text); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .status-line {
+            font-size: 13px; color: var(--text-dim);
+            font-family: 'DM Mono', monospace;
+        }
+        .status-line .val { color: var(--text); font-weight: 600; }
+
+        /* ── Right Column ── */
+        .right-col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+
+        /* Current letter card */
+        .current-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+        .current-card .section-label {
+            font-size: 11px; font-weight: 600; color: var(--text-dim);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 14px;
+        }
+        .current-card .ref-image {
+            width: 180px; height: 180px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: var(--panel);
+            border: 2px solid var(--border);
+            margin: 0 auto 12px;
+            display: block;
+        }
+        .current-letter {
+            font-size: 42px; font-weight: 700;
+            color: var(--green);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .current-letter-sub {
+            font-size: 13px; color: var(--text-dim);
+        }
+
+        /* Progress bar */
+        .progress-section { margin-top: 16px; }
+        .progress-header {
+            display: flex; justify-content: space-between;
+            font-size: 12px; color: var(--text-dim);
+            margin-bottom: 6px;
+            font-family: 'DM Mono', monospace;
+        }
+        .progress-bar-bg {
+            height: 8px; border-radius: 4px; background: var(--panel);
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%; border-radius: 4px;
+            background: var(--green);
+            transition: width 0.3s ease;
+        }
+
+        /* Overall progress grid */
+        .overall-card {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .overall-card .section-label {
+            font-size: 11px; font-weight: 600; color: var(--text-dim);
+            letter-spacing: 1.5px; text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 10px;
+        }
+        .letter-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .letter-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-muted);
+            position: relative;
+            transition: all 0.2s;
+        }
+        .letter-cell.done {
+            background: rgba(34,197,94,0.1);
+            border-color: rgba(34,197,94,0.3);
+            color: var(--green);
+        }
+        .letter-cell.active {
+            background: rgba(34,197,94,0.15);
+            border-color: var(--green);
+            color: var(--green);
+            box-shadow: 0 0 16px rgba(34,197,94,0.15);
+        }
+        .letter-cell .mini-bar {
+            position: absolute; bottom: 3px; left: 3px; right: 3px;
+            height: 3px; border-radius: 2px; background: var(--border);
+            overflow: hidden;
+        }
+        .letter-cell .mini-fill {
+            height: 100%; border-radius: 2px; background: var(--green);
+            transition: width 0.3s;
+        }
+
+        /* ── Complete overlay ── */
+        .complete-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(10,12,16,0.92);
+            align-items: center; justify-content: center;
+            flex-direction: column; gap: 16px;
+        }
+        .complete-overlay.show { display: flex; }
+        .complete-overlay h2 {
+            font-size: 36px; color: var(--green);
+        }
+        .complete-overlay p {
+            font-size: 16px; color: var(--text-dim); max-width: 400px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="icon">✋</div>
+            <div>
+                <div class="header-title">ASL COLLECTOR</div>
+                <div class="header-user">{{ first }} {{ last }}</div>
+            </div>
+        </div>
+        <div class="live-badge" id="liveBadge" style="display:none">
+            <div class="dot"></div>COLLECTING
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+        <!-- Left: Camera -->
+        <div class="left-col">
+            <div class="camera-section">
+                <div class="label-bar">
+                    <span>● Camera Feed</span>
+                    <span id="handStatus" style="color:var(--text-muted)">Waiting…</span>
+                </div>
+                <div class="camera-wrap">
+                    <video id="webcam" playsinline autoplay muted></video>
+                    <canvas id="overlay"></canvas>
+                    <div class="no-camera" id="noCam">
+                        <div class="emoji">📷</div>
+                        <div>Press Start to enable camera</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="crop-preview">
+                    <span class="crop-label">Hand Crop</span>
+                    <canvas id="cropCanvas" width="200" height="200"></canvas>
+                </div>
+                <div class="controls-panel">
+                    <div class="btn-row">
+                        <button class="btn btn-start" id="btnStart" onclick="startCollecting()">▶ Start</button>
+                        <button class="btn btn-stop" id="btnStop" onclick="stopCollecting()" disabled>■ Stop</button>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-skip" id="btnSkip" onclick="skipLetter()">Skip Letter →</button>
+                    </div>
+                    <div class="status-line" id="statusLine">Ready</div>
+                    <div class="status-line">
+                        Saved: <span class="val" id="savedCount">0</span>/<span id="targetCount">{{ target }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Reference + Progress -->
+        <div class="right-col">
+            <div class="current-card">
+                <div class="section-label">Make This Sign</div>
+                <img id="refImage" class="ref-image" src="" alt="Reference">
+                <div class="current-letter" id="currentLetter">A</div>
+                <div class="current-letter-sub" id="currentSub">Hold this sign in front of the camera</div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span id="progressLabel">0 / {{ target }}</span>
+                        <span id="progressPct">0%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overall-card">
+                <div class="section-label">Overall Progress</div>
+                <div class="letter-grid" id="letterGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete overlay -->
+    <div class="complete-overlay" id="completeOverlay">
+        <h2>🎉 All Done!</h2>
+        <p>Thank you, {{ first }}! You've completed all 26 letters. Your contributions will help improve ASL recognition.</p>
+        <button class="btn btn-start" onclick="window.location='/'">← Back to Home</button>
+    </div>
+
+    <script>
+    // ── Config from server ──
+    const USER_KEY = "{{ user_key }}";
+    const SYMBOLS = {{ symbols | tojson }};
+    const TARGET = {{ target }};
+    const SAVE_INTERVAL_MS = 200;  // match your original 0.20s
+
+    // ── State ──
+    let currentIndex = 0;
+    let collecting = false;
+    let lastSaveTime = 0;
+    let progress = {};
+    let cameraReady = false;
+    let handsModel = null;
+    let handDetected = false;
+    let lastLandmarks = null;
+
+    // ── DOM refs ──
+    const video = document.getElementById('webcam');
+    const overlayCanvas = document.getElementById('overlay');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const cropCanvas = document.getElementById('cropCanvas');
+    const cropCtx = cropCanvas.getContext('2d');
+
+    // ── Init ──
+    async function init() {
+        // Fetch progress from server
+        const res = await fetch(`/api/progress/${USER_KEY}`);
+        const data = await res.json();
+        progress = data.progress;
+
+        if (data.complete) {
+            document.getElementById('completeOverlay').classList.add('show');
+            return;
+        }
+
+        // Find where to resume
+        currentIndex = SYMBOLS.indexOf(data.current_letter) || 0;
+        buildLetterGrid();
+        updateUI();
+
+        // Init MediaPipe Hands
+        handsModel = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+        handsModel.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.5,
+        });
+        handsModel.onResults(onHandResults);
+
+        // Start camera
+        await startCamera();
+    }
+
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' }
+            });
+            video.srcObject = stream;
+            await video.play();
+            document.getElementById('noCam').style.display = 'none';
+            cameraReady = true;
+            requestAnimationFrame(processFrame);
+        } catch (e) {
+            document.getElementById('statusLine').textContent = `Camera error: ${e.message}`;
+        }
+    }
+
+    async function processFrame() {
+        if (!cameraReady || !handsModel) {
+            requestAnimationFrame(processFrame);
+            return;
+        }
+
+        if (video.readyState >= 2) {
+            // Set canvas size
+            overlayCanvas.width = video.videoWidth;
+            overlayCanvas.height = video.videoHeight;
+
+            // Send to MediaPipe
+            await handsModel.send({ image: video });
+        }
+
+        requestAnimationFrame(processFrame);
+    }
+
+    function onHandResults(results) {
+        const w = overlayCanvas.width;
+        const h = overlayCanvas.height;
+        overlayCtx.clearRect(0, 0, w, h);
+
+        // Draw mirrored video
+        overlayCtx.save();
+        overlayCtx.drawImage(video, 0, 0, w, h);
+        overlayCtx.restore();
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            handDetected = true;
+            lastLandmarks = results.multiHandLandmarks[0];
+            document.getElementById('handStatus').style.color = 'var(--green)';
+            document.getElementById('handStatus').textContent = '✋ Hand Detected';
+
+            // Compute bounding box
+            const xs = lastLandmarks.map(l => l.x);
+            const ys = lastLandmarks.map(l => l.y);
+            const padding = 80;
+            let x1 = Math.max(Math.floor(Math.min(...xs) * w) - padding, 0);
+            let y1 = Math.max(Math.floor(Math.min(...ys) * h) - padding, 0);
+            let x2 = Math.min(Math.floor(Math.max(...xs) * w) + padding, w);
+            let y2 = Math.min(Math.floor(Math.max(...ys) * h) + padding, h);
+
+            // Make square
+            const bw = x2 - x1, bh = y2 - y1;
+            const side = Math.max(bw, bh);
+            const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+            x1 = Math.max(Math.floor(cx - side/2), 0);
+            y1 = Math.max(Math.floor(cy - side/2), 0);
+            x2 = Math.min(x1 + side, w);
+            y2 = Math.min(y1 + side, h);
+
+            // Draw bounding box (green)
+            overlayCtx.strokeStyle = '#22c55e';
+            overlayCtx.lineWidth = 2;
+            overlayCtx.strokeRect(x1, y1, x2-x1, y2-y1);
+
+            // Draw crop preview
+            const cw = x2-x1, ch = y2-y1;
+            if (cw > 0 && ch > 0) {
+                cropCanvas.width = 200;
+                cropCanvas.height = 200;
+                cropCtx.drawImage(overlayCanvas, x1, y1, cw, ch, 0, 0, 200, 200);
+
+                // Auto-save if collecting
+                if (collecting) {
+                    const now = Date.now();
+                    if (now - lastSaveTime >= SAVE_INTERVAL_MS) {
+                        lastSaveTime = now;
+                        saveCrop(x1, y1, cw, ch);
+                    }
+                }
+            }
+        } else {
+            handDetected = false;
+            lastLandmarks = null;
+            document.getElementById('handStatus').style.color = 'var(--red)';
+            document.getElementById('handStatus').textContent = 'No Hand';
+        }
+    }
+
+    async function saveCrop(x, y, cw, ch) {
+        const letter = SYMBOLS[currentIndex];
+        if (!letter) return;
+
+        // Draw crop to a temp canvas at 200x200
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = 200;
+        tmpCanvas.height = 200;
+        const tmpCtx = tmpCanvas.getContext('2d');
+        tmpCtx.drawImage(overlayCanvas, x, y, cw, ch, 0, 0, 200, 200);
+
+        const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.92);
+
+        try {
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_key: USER_KEY,
+                    letter: letter,
+                    image: dataUrl,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                progress[letter] = data.count;
+                updateUI();
+
+                // Check if this letter is done
+                if (data.count >= TARGET) {
+                    collecting = false;
+                    currentIndex++;
+                    if (currentIndex >= SYMBOLS.length) {
+                        document.getElementById('completeOverlay').classList.add('show');
+                        return;
+                    }
+                    // Stop and wait for user to press Start for the next letter
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    document.getElementById('liveBadge').style.display = 'none';
+                    document.getElementById('statusLine').textContent =
+                        `✓ "${SYMBOLS[currentIndex - 1]}" complete! Press Start when ready for "${SYMBOLS[currentIndex]}"`;
+                    updateUI();
+                }
+            }
+        } catch (e) {
+            console.error('Upload failed:', e);
+        }
+    }
+
+    // ── Controls ──
+    function startCollecting() {
+        collecting = true;
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnStop').disabled = false;
+        document.getElementById('liveBadge').style.display = 'flex';
+        document.getElementById('statusLine').textContent = `Collecting "${SYMBOLS[currentIndex]}"…`;
+    }
+
+    function stopCollecting() {
+        collecting = false;
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+        document.getElementById('liveBadge').style.display = 'none';
+        document.getElementById('statusLine').textContent = 'Paused';
+    }
+
+    function skipLetter() {
+        collecting = false;
+        currentIndex++;
+        if (currentIndex >= SYMBOLS.length) {
+            document.getElementById('completeOverlay').classList.add('show');
+            return;
+        }
+        updateUI();
+        document.getElementById('statusLine').textContent = `Skipped to "${SYMBOLS[currentIndex]}"`;
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+        document.getElementById('liveBadge').style.display = 'none';
+    }
+
+    // ── UI Updates ──
+    function updateUI() {
+        const letter = SYMBOLS[currentIndex];
+        if (!letter) return;
+
+        const count = progress[letter] || 0;
+        const pct = Math.min(count / TARGET * 100, 100);
+
+        document.getElementById('currentLetter').textContent = letter;
+        document.getElementById('refImage').src = `/reference/${letter}`;
+        document.getElementById('savedCount').textContent = count;
+        document.getElementById('progressLabel').textContent = `${count} / ${TARGET}`;
+        document.getElementById('progressPct').textContent = `${Math.round(pct)}%`;
+        document.getElementById('progressFill').style.width = pct + '%';
+
+        if (count >= TARGET) {
+            document.getElementById('currentSub').textContent = '✓ Complete!';
+        } else {
+            document.getElementById('currentSub').textContent = 'Hold this sign in front of the camera';
+        }
+
+        // Update letter grid
+        document.querySelectorAll('.letter-cell').forEach(cell => {
+            const ch = cell.dataset.letter;
+            const c = progress[ch] || 0;
+            const p = Math.min(c / TARGET * 100, 100);
+
+            cell.classList.remove('active', 'done');
+            if (ch === letter) cell.classList.add('active');
+            else if (c >= TARGET) cell.classList.add('done');
+
+            const fill = cell.querySelector('.mini-fill');
+            if (fill) fill.style.width = p + '%';
+        });
+    }
+
+    function buildLetterGrid() {
+        const grid = document.getElementById('letterGrid');
+        grid.innerHTML = '';
+        SYMBOLS.forEach(ch => {
+            const cell = document.createElement('div');
+            cell.className = 'letter-cell';
+            cell.dataset.letter = ch;
+            cell.innerHTML = `
+                ${ch}
+                <div class="mini-bar"><div class="mini-fill" style="width:0%"></div></div>
+            `;
+            grid.appendChild(cell);
+        });
+    }
+
+    // ── Boot ──
+    init();
+    </script>
+</body>
+</html>

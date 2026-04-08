@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Secrets
+client_secret.json
+service_account.json
+token.json
+*.pem
+
+# Local files
+nohup.out
+local_backup/
+user_progress.json
+
+# IDE
+*.code-workspace
